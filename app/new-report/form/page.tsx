@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import Navbar from "@/components/navbar";
 import { useTranslation } from "@/lib/translation";
-import { createReport } from "@/lib/supabase";
+import { createReport, generateAccessCode } from "@/lib/supabase";
 import {
   AlertCircle,
   ArrowLeft,
@@ -218,7 +218,6 @@ export default function ReportFormPage() {
   };
 
   const handleConfirmSubmit = async () => {
-    setShowConfirmation(false);
     setIsSubmitting(true);
     setError(null);
 
@@ -238,19 +237,15 @@ export default function ReportFormPage() {
       // Tüm dosyaları yükle
       for (const file of selectedFiles) {
         const fileName = `${Date.now()}-${file.name}`;
-        
         const { data, error: uploadError } = await supabase.storage
           .from("report-uploads")
           .upload(fileName, file);
-
         if (uploadError) {
           throw uploadError;
         }
-
         const { data: { publicUrl } } = supabase.storage
           .from("report-uploads")
           .getPublicUrl(fileName);
-
         uploadedFiles.push({
           fileUrl: publicUrl || "",
           fileName: fileName,
@@ -259,7 +254,19 @@ export default function ReportFormPage() {
         });
       }
 
-      const { accessCode, error } = await createReport({
+      let accessCode;
+      let isUnique = false;
+      while (!isUnique) {
+        accessCode = generateAccessCode();
+        const { data } = await supabase
+          .from("reports")
+          .select("id")
+          .eq("access_code", accessCode)
+          .single();
+        if (!data) isUnique = true;
+      }
+
+      const { accessCode: reportAccessCode, error } = await createReport({
         ...formData,
         files: uploadedFiles,
       });
@@ -268,8 +275,9 @@ export default function ReportFormPage() {
         throw error;
       }
 
+      setShowConfirmation(false); // Modalı kapat
       // Başarılı sayfasına yönlendir
-      router.push(`/new-report/success?code=${accessCode}`);
+      router.push(`/new-report/success?code=${reportAccessCode}`);
     } catch (err) {
       console.error("Error submitting report:", err);
       setError(err instanceof Error ? err.message : "Bir hata oluştu");
@@ -837,7 +845,7 @@ export default function ReportFormPage() {
         </form>
       </main>
 
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+      <Dialog open={showConfirmation || isSubmitting} onOpenChange={setShowConfirmation}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{language === "tr" ? "Raporu Gönder" : "Submit Report"}</DialogTitle>
@@ -852,7 +860,12 @@ export default function ReportFormPage() {
               {language === "tr" ? "İptal" : "Cancel"}
             </Button>
             <Button onClick={handleConfirmSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Gönderiliyor..." : language === "tr" ? "Evet, Gönder" : "Yes, Submit"}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  {language === "tr" ? "Gönderiliyor..." : "Submitting..."}
+                </span>
+              ) : language === "tr" ? "Evet, Gönder" : "Yes, Submit"}
             </Button>
           </DialogFooter>
         </DialogContent>
