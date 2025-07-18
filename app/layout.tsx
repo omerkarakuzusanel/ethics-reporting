@@ -8,9 +8,9 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Ethics Support Reporting System",
-  description: "Report ethical violations and track their status",
-    generator: 'v0.dev'
+  title: "Etik İhlal Bildirim Sistemi",
+  description: "Etik ihlalleri rapor edin ve durumlarını takip edin",
+    generator: 'Ömer Karakuzu'
 }
 
 export default function RootLayout({
