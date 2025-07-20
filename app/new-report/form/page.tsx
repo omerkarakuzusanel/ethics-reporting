@@ -214,6 +214,24 @@ export default function ReportFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Önce validasyon yap
+    if (!validateForm()) {
+      const firstErrorId = Object.keys(errors)[0];
+      const element = document.getElementById(firstErrorId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      toast({
+        title: language === "tr" ? "Eksik Alanlar" : "Missing Fields",
+        description: language === "tr"
+          ? "Lütfen tüm zorunlu alanları doldurun."
+          : "Please fill in all required fields.",
+        variant: "destructive",
+        duration: 4000
+      });
+      setShowConfirmation(false); // Modalı kapat
+      return;
+    }
     setShowConfirmation(true);
   };
 
