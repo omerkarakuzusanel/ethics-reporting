@@ -9,6 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 const NOTIF_EMAIL_1 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_1;
 const NOTIF_EMAIL_2 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_2;
 const NOTIF_EMAIL_3 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_3;
+const NOTIF_EMAIL_4 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_4;
 
 
 // API anahtarı ve e-posta adresi kontrolü
@@ -60,7 +61,8 @@ const createEmailTemplate = (data: {
     to: [
         NOTIF_EMAIL_1,
         NOTIF_EMAIL_2,
-        NOTIF_EMAIL_3
+        NOTIF_EMAIL_3,
+        NOTIF_EMAIL_4,
       ],
     from: ADMIN_EMAIL,
     subject: 'Yeni Etik İhlal Bildirimi',
@@ -210,7 +212,8 @@ export async function POST(request: Request) {
       to: [
         NOTIF_EMAIL_1,
         NOTIF_EMAIL_2,
-        NOTIF_EMAIL_3
+        NOTIF_EMAIL_3,
+        NOTIF_EMAIL_4,
       ],
       from: {
         email: ADMIN_EMAIL,
