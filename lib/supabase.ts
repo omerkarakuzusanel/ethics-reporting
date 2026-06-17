@@ -112,7 +112,16 @@ export async function getReportByAccessCode(accessCode: string) {
   const { data, error } = await supabase
     .from("reports")
     .select(`
-      *,
+      id,
+      created_at,
+      description,
+      location,
+      date,
+      status,
+      admin_notes,
+      connection_option,
+      name,
+      updated_at,
       report_files (
         id,
         file_name,

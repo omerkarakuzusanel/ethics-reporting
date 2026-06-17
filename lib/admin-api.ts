@@ -73,7 +73,7 @@ export const updateReport = async (id: string, updates: any) => {
   // Get the current report to compare changes
   const { data: currentReport, error: fetchError } = await supabase
     .from("reports")
-    .select("status, admin_notes")
+    .select("status, admin_notes, internal_admin_notes")
     .eq("id", id)
     .single()
 
@@ -86,8 +86,17 @@ export const updateReport = async (id: string, updates: any) => {
   if (updates.status && updates.status !== currentReport.status) {
     updateType = "status_change"
   }
-  if (updates.admin_notes && updates.admin_notes !== currentReport.admin_notes) {
+  if (
+    updates.admin_notes !== undefined &&
+    updates.admin_notes !== currentReport.admin_notes
+  ) {
     updateType = "notes_update"
+  }
+  if (
+    updates.internal_admin_notes !== undefined &&
+    updates.internal_admin_notes !== currentReport.internal_admin_notes
+  ) {
+    updateType = "general_update"
   }
 
   // Create update record

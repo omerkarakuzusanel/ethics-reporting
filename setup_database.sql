@@ -13,6 +13,7 @@ CREATE TABLE reports (
   access_code TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'inProgress',
   admin_notes TEXT,
+  internal_admin_notes TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_by UUID REFERENCES auth.users(id)
 );
