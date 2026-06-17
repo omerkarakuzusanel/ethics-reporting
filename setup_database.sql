@@ -11,7 +11,7 @@ CREATE TABLE reports (
   email TEXT,
   phone TEXT,
   access_code TEXT NOT NULL UNIQUE,
-  status TEXT NOT NULL DEFAULT 'pending',
+  status TEXT NOT NULL DEFAULT 'inProgress',
   admin_notes TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_by UUID REFERENCES auth.users(id)

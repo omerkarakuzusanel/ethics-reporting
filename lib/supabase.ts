@@ -50,6 +50,7 @@ export async function createReport(data: {
         email: data.email || null,
         phone: data.phone || null,
         access_code: accessCode,
+        status: "inProgress",
       })
       .select()
       .single();
