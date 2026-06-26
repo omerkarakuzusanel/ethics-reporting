@@ -11,6 +11,9 @@ const NOTIF_EMAIL_2 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_2;
 const NOTIF_EMAIL_3 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_3;
 const NOTIF_EMAIL_4 = process.env.NEXT_PUBLIC_NOTIF_EMAIL_4;
 
+const NOTIF_EMAILS = [NOTIF_EMAIL_1, NOTIF_EMAIL_2, NOTIF_EMAIL_3, NOTIF_EMAIL_4].filter(
+  (email): email is string => Boolean(email)
+);
 
 // API anahtarı ve e-posta adresi kontrolü
 if (!SENDGRID_API_KEY) {
@@ -58,12 +61,7 @@ const createEmailTemplate = (data: {
     : `${APP_URL}/track-report?code=${accessCode}`;
 
   return {
-    to: [
-        NOTIF_EMAIL_1,
-        NOTIF_EMAIL_2,
-        NOTIF_EMAIL_3,
-        NOTIF_EMAIL_4,
-      ],
+    to: NOTIF_EMAILS,
     from: ADMIN_EMAIL,
     subject: 'Yeni Etik İhlal Bildirimi',
     text: `
@@ -209,12 +207,7 @@ export async function POST(request: Request) {
     }
 
     const msg = {
-      to: [
-        NOTIF_EMAIL_1,
-        NOTIF_EMAIL_2,
-        NOTIF_EMAIL_3,
-        NOTIF_EMAIL_4,
-      ],
+      to: NOTIF_EMAILS,
       from: {
         email: ADMIN_EMAIL,
         name: 'Sanel | Etik Bildirim Sistemi'

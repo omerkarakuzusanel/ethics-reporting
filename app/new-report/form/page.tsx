@@ -39,9 +39,13 @@ export default function ReportFormPage() {
   const { t, language } = useTranslation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifyingHrPassword, setIsVerifyingHrPassword] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showHrPasswordDialog, setShowHrPasswordDialog] = useState(false);
+  const [hrPassword, setHrPassword] = useState("");
+  const [hrPasswordError, setHrPasswordError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     description: "",
     location: "",
@@ -101,6 +105,69 @@ export default function ReportFormPage() {
         delete newErrors.email;
         return newErrors;
       });
+    }
+  };
+
+  const handleHrManualEntryToggle = (checked: boolean) => {
+    if (!checked) {
+      setShowHrPasswordDialog(false);
+      setHrPassword("");
+      setHrPasswordError(null);
+      handleCheckboxChange("hrManualEntry", false);
+      return;
+    }
+
+    setHrPassword("");
+    setHrPasswordError(null);
+    setShowHrPasswordDialog(true);
+  };
+
+  const verifyHrPassword = async () => {
+    if (!hrPassword.trim()) {
+      setHrPasswordError(
+        language === "tr"
+          ? "L\u00fctfen \u015fifreyi giriniz."
+          : "Please enter the password."
+      );
+      return;
+    }
+
+    setIsVerifyingHrPassword(true);
+    setHrPasswordError(null);
+
+    try {
+      const response = await fetch("/api/verify-hr-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password: hrPassword }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(
+          result?.error ||
+            (language === "tr"
+              ? "\u015eifre do\u011frulanamad\u0131."
+              : "Password verification failed.")
+        );
+      }
+
+      handleCheckboxChange("hrManualEntry", true);
+      setShowHrPasswordDialog(false);
+      setHrPassword("");
+      setHrPasswordError(null);
+    } catch (err) {
+      setHrPasswordError(
+        err instanceof Error
+          ? err.message
+          : language === "tr"
+            ? "\u015eifre do\u011frulanamad\u0131."
+            : "Password verification failed."
+      );
+    } finally {
+      setIsVerifyingHrPassword(false);
     }
   };
 
@@ -617,7 +684,7 @@ export default function ReportFormPage() {
                     id="hrManualEntry"
                     checked={formData.hrManualEntry}
                     onCheckedChange={(checked) =>
-                      handleCheckboxChange("hrManualEntry", checked === true)
+                      handleHrManualEntryToggle(checked === true)
                     }
                     className="mt-1"
                   />
@@ -939,6 +1006,74 @@ export default function ReportFormPage() {
                   {language === "tr" ? "Gönderiliyor..." : "Submitting..."}
                 </span>
               ) : language === "tr" ? "Evet, Gönder" : "Yes, Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showHrPasswordDialog}
+        onOpenChange={(open) => {
+          setShowHrPasswordDialog(open);
+          if (!open) {
+            setHrPassword("");
+            setHrPasswordError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === "tr" ? "\u0130K Manuel Giri\u015fi Yetkisi" : "HR Manual Entry Authorization"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "tr"
+                ? "\u0130K manuel giri\u015fini a\u00e7mak i\u00e7in \u015fifreyi giriniz."
+                : "Enter the password to enable HR manual entry."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Label htmlFor="hr-manual-entry-password">
+              {language === "tr" ? "\u015eifre" : "Password"}
+            </Label>
+            <Input
+              id="hr-manual-entry-password"
+              type="password"
+              value={hrPassword}
+              onChange={(e) => setHrPassword(e.target.value)}
+              placeholder={language === "tr" ? "\u015eifreyi giriniz" : "Enter password"}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void verifyHrPassword();
+                }
+              }}
+            />
+            {hrPasswordError && (
+              <p className="text-sm text-red-500">{hrPasswordError}</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowHrPasswordDialog(false);
+                setHrPassword("");
+                setHrPasswordError(null);
+              }}
+            >
+              {language === "tr" ? "\u0130ptal" : "Cancel"}
+            </Button>
+            <Button onClick={() => void verifyHrPassword()} disabled={isVerifyingHrPassword}>
+              {isVerifyingHrPassword
+                ? language === "tr"
+                  ? "Do\u011frulan\u0131yor..."
+                  : "Verifying..."
+                : language === "tr"
+                  ? "Do\u011frula"
+                  : "Verify"}
             </Button>
           </DialogFooter>
         </DialogContent>
