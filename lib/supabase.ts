@@ -27,6 +27,7 @@ export async function createReport(data: {
   name: string;
   email: string;
   phone: string;
+  hrManualEntry: boolean;
   files?: {
     fileUrl: string;
     fileName: string;
@@ -49,6 +50,7 @@ export async function createReport(data: {
         name: data.name || null,
         email: data.email || null,
         phone: data.phone || null,
+        hr_manual_entry: data.hrManualEntry,
         access_code: accessCode,
         status: "inProgress",
       })

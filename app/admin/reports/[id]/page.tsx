@@ -39,6 +39,7 @@ interface ReportDetail {
   name: string | null;
   email: string | null;
   phone: string | null;
+  hr_manual_entry: boolean;
   admin_notes: string | null;
   internal_admin_notes: string | null;
   updated_at: string;
@@ -329,7 +330,12 @@ export default function ReportDetailPage({
                 <h3 className="mb-1 text-sm font-medium text-muted-foreground">
                   Bildiren Kişi
                 </h3>
-                <p>{getIdentityLabel(report.identity_option)}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p>{getIdentityLabel(report.identity_option)}</p>
+                  {report.hr_manual_entry && (
+                    <Badge variant="secondary">İK Manuel Girişi</Badge>
+                  )}
+                </div>
               </div>
 
               {report.identity_option === "share" && (
@@ -409,6 +415,13 @@ export default function ReportDetailPage({
                   Son Güncelleme
                 </h3>
                 <p>{formatDateTime(report.updated_at)}</p>
+              </div>
+
+              <div>
+                <h3 className="mb-1 text-sm font-medium text-muted-foreground">
+                  Giriş Tipi
+                </h3>
+                <p>{report.hr_manual_entry ? "İK manuel girişi" : "Standart bildirim"}</p>
               </div>
 
               <div className="space-y-3 rounded-lg border border-dashed p-4">

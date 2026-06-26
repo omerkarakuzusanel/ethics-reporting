@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
 import { validateFile, formatFileSize } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -51,6 +52,7 @@ export default function ReportFormPage() {
     name: "",
     email: "",
     phone: "",
+    hrManualEntry: false,
     files: [] as File[]
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,6 +86,19 @@ export default function ReportFormPage() {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: checked }));
+
+    if (checked) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.name;
+        delete newErrors.email;
         return newErrors;
       });
     }
@@ -179,7 +194,7 @@ export default function ReportFormPage() {
           ? "Lütfen olayın gerçekleştiği tarihi belirtiniz"
           : "Please specify when the incident took place";
     }
-    if (formData.identityOption === "share") {
+    if (formData.identityOption === "share" && !formData.hrManualEntry) {
       if (!formData.name.trim()) {
         newErrors.name =
           language === "tr"
@@ -197,6 +212,16 @@ export default function ReportFormPage() {
             ? "Lütfen geçerli bir e-posta adresi giriniz"
             : "Please enter a valid email address";
       }
+    } else if (
+      formData.identityOption === "share" &&
+      formData.hrManualEntry &&
+      formData.email.trim() &&
+      !/\S+@\S+\.\S+/.test(formData.email)
+    ) {
+      newErrors.email =
+        language === "tr"
+          ? "Lütfen geçerli bir e-posta adresi giriniz"
+          : "Please enter a valid email address";
     }
     if (
       formData.connectionOption === "other" &&
@@ -267,8 +292,8 @@ export default function ReportFormPage() {
         uploadedFiles.push({
           fileUrl: publicUrl || "",
           fileName: fileName,
-          fileUploaderName: formData.identityOption === "share" ? formData.name : null,
-          fileUploaderEmail: formData.identityOption === "share" ? formData.email : null,
+          fileUploaderName: formData.identityOption === "share" ? formData.name || null : null,
+          fileUploaderEmail: formData.identityOption === "share" ? formData.email || null : null,
         });
       }
 
@@ -586,6 +611,29 @@ export default function ReportFormPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
+              <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="hrManualEntry"
+                    checked={formData.hrManualEntry}
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange("hrManualEntry", checked === true)
+                    }
+                    className="mt-1"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="hrManualEntry" className="cursor-pointer text-sm font-medium">
+                      {language === "tr" ? "İK manuel girişi" : "HR manual entry"}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "tr"
+                        ? "Elden teslim edilen etik bildirimleri İK tarafından sisteme girildiğinde bu seçeneği işaretleyin. Bu durumda isim ve iletişim alanları zorunlu olmaz."
+                        : "Enable this when HR is manually entering a hand-delivered ethics report. In this case, name and contact fields become optional."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <RadioGroup
                 defaultValue="anonymous"
                 value={formData.identityOption}
@@ -655,7 +703,7 @@ export default function ReportFormPage() {
                         <span>
                           {language === "tr" ? "İsim Soyisim" : "Full Name"}
                         </span>
-                        <span className="text-red-500">*</span>
+                        {!formData.hrManualEntry && <span className="text-red-500">*</span>}
                       </Label>
                       <Input
                         id="name"
@@ -706,8 +754,15 @@ export default function ReportFormPage() {
                       className="text-base flex items-center gap-2"
                     >
                       <span>{language === "tr" ? "E-posta" : "Email"}</span>
-                      <span className="text-red-500">*</span>
+                      {!formData.hrManualEntry && <span className="text-red-500">*</span>}
                     </Label>
+                    {formData.hrManualEntry && (
+                      <p className="text-xs text-muted-foreground">
+                        {language === "tr"
+                          ? "İK manuel girişi seçili olduğu için isim ve iletişim alanları isteğe bağlıdır."
+                          : "Name and contact fields are optional because HR manual entry is selected."}
+                      </p>
+                    )}
                     <Input
                       id="email"
                       name="email"

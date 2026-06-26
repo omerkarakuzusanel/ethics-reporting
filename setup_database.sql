@@ -10,6 +10,7 @@ CREATE TABLE reports (
   name TEXT,
   email TEXT,
   phone TEXT,
+  hr_manual_entry BOOLEAN NOT NULL DEFAULT FALSE,
   access_code TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'inProgress',
   admin_notes TEXT,

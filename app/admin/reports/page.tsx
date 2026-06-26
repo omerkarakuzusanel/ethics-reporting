@@ -8,10 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search } from "lucide-react"
+import { Download, Search } from "lucide-react"
 import { getAllReports } from "@/lib/admin-api"
-import { useTranslation } from "@/lib/translation"
-import { supabase } from "@/lib/supabase"
 
 interface Report {
   id: string
@@ -21,11 +19,18 @@ interface Report {
   date: string
   status: "pending" | "inProgress" | "completed" | "rejected"
   access_code: string
+  hr_manual_entry: boolean
+}
+
+const STATUS_LABELS: Record<Report["status"], string> = {
+  pending: "Onay Bekliyor",
+  inProgress: "Değerlendiriliyor",
+  completed: "Tamamlandı",
+  rejected: "İhlal Tespit Edilmedi",
 }
 
 export default function ReportsPage() {
   const router = useRouter()
-  const { t } = useTranslation()
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -57,10 +62,10 @@ export default function ReportsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: Report["status"]) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Onay Bekliyor</Badge>
+        return <Badge variant="outline" className="border-yellow-200 bg-yellow-100 text-yellow-800">Onay Bekliyor</Badge>
       case "inProgress":
         return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Değerlendiriliyor</Badge>
       case "completed":
@@ -72,10 +77,97 @@ export default function ReportsPage() {
     }
   }
 
+  const getEntryTypeBadge = (isHrManualEntry: boolean) => {
+    if (isHrManualEntry) {
+      return <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">İK Manuel Girişi</Badge>
+    }
+
+    return <Badge variant="outline">Standart Bildirim</Badge>
+  }
+
+  const escapeExcelCell = (value: string) =>
+    value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+
+  const handleExport = () => {
+    if (filteredReports.length === 0) {
+      return
+    }
+
+    const rows = filteredReports
+      .map((report) => {
+        const createdAt = new Date(report.created_at).toLocaleString("tr-TR")
+        const incidentDate = new Date(report.date).toLocaleDateString("tr-TR")
+        const entryType = report.hr_manual_entry ? "İK Manuel Girişi" : "Standart Bildirim"
+        const status = STATUS_LABELS[report.status]
+
+        return `
+          <tr>
+            <td>${escapeExcelCell(createdAt)}</td>
+            <td>${escapeExcelCell(report.access_code)}</td>
+            <td>${escapeExcelCell(entryType)}</td>
+            <td>${escapeExcelCell(status)}</td>
+            <td>${escapeExcelCell(report.location)}</td>
+            <td>${escapeExcelCell(incidentDate)}</td>
+            <td>${escapeExcelCell(report.description)}</td>
+          </tr>
+        `
+      })
+      .join("")
+
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office"
+            xmlns:x="urn:schemas-microsoft-com:office:excel"
+            xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8" />
+        </head>
+        <body>
+          <table border="1">
+            <thead>
+              <tr>
+                <th>Rapor Tarihi</th>
+                <th>Erişim Kodu</th>
+                <th>Giriş Tipi</th>
+                <th>Durum</th>
+                <th>Konum</th>
+                <th>Olay Tarihi</th>
+                <th>Açıklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    const blob = new Blob([String.fromCharCode(0xfeff), html], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    })
+
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `tum-raporlar-${new Date().toISOString().slice(0, 10)}.xls`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Raporlar</h1>
+        <Button onClick={handleExport} disabled={loading || filteredReports.length === 0} className="gap-2">
+          <Download className="h-4 w-4" />
+          Excel&apos;e Aktar
+        </Button>
       </div>
 
       <Card>
@@ -83,7 +175,7 @@ export default function ReportsPage() {
           <CardTitle>Tüm Raporlar</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="mb-6 flex flex-col gap-4 md:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -108,16 +200,17 @@ export default function ReportsPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-8">Raporlar yükleniyor...</div>
+            <div className="py-8 text-center">Raporlar yükleniyor...</div>
           ) : filteredReports.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Arama kriterlerinize uygun rapor bulunamadı</div>
+            <div className="py-8 text-center text-muted-foreground">Arama kriterlerinize uygun rapor bulunamadı</div>
           ) : (
-            <div className="border rounded-md">
+            <div className="overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tarih</TableHead>
                     <TableHead>Erişim Kodu</TableHead>
+                    <TableHead>Giriş Tipi</TableHead>
                     <TableHead className="hidden md:table-cell">Konum</TableHead>
                     <TableHead>Durum</TableHead>
                     <TableHead className="text-right">İşlemler</TableHead>
@@ -126,8 +219,9 @@ export default function ReportsPage() {
                 <TableBody>
                   {filteredReports.map((report) => (
                     <TableRow key={report.id} className="hover:bg-gray-50">
-                      <TableCell>{new Date(report.created_at).toLocaleDateString('tr-TR')}</TableCell>
+                      <TableCell>{new Date(report.created_at).toLocaleDateString("tr-TR")}</TableCell>
                       <TableCell className="font-mono">{report.access_code}</TableCell>
+                      <TableCell>{getEntryTypeBadge(report.hr_manual_entry)}</TableCell>
                       <TableCell className="hidden md:table-cell">{report.location}</TableCell>
                       <TableCell>{getStatusBadge(report.status)}</TableCell>
                       <TableCell className="text-right">
@@ -146,4 +240,3 @@ export default function ReportsPage() {
     </div>
   )
 }
-
