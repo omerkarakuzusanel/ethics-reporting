@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
-import { validateFile, formatFileSize } from "@/lib/utils"
+import { buildStorageFileKey, validateFile, formatFileSize } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function ReportFormPage() {
@@ -346,19 +346,19 @@ export default function ReportFormPage() {
 
       // Tüm dosyaları yükle
       for (const file of selectedFiles) {
-        const fileName = `${Date.now()}-${file.name}`;
+        const storageFileKey = buildStorageFileKey(file.name);
         const { data, error: uploadError } = await supabase.storage
           .from("report-uploads")
-          .upload(fileName, file);
+          .upload(storageFileKey, file);
         if (uploadError) {
           throw uploadError;
         }
         const { data: { publicUrl } } = supabase.storage
           .from("report-uploads")
-          .getPublicUrl(fileName);
+          .getPublicUrl(storageFileKey);
         uploadedFiles.push({
           fileUrl: publicUrl || "",
-          fileName: fileName,
+          fileName: file.name.trim() || file.name,
           fileUploaderName: formData.identityOption === "share" ? formData.name || null : null,
           fileUploaderEmail: formData.identityOption === "share" ? formData.email || null : null,
         });

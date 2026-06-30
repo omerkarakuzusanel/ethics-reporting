@@ -25,6 +25,35 @@ export function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+export function buildStorageFileKey(fileName: string): string {
+  const trimmedFileName = fileName.trim();
+  const extensionIndex = trimmedFileName.lastIndexOf('.');
+  const hasExtension = extensionIndex > 0;
+
+  const extension = hasExtension
+    ? trimmedFileName.slice(extensionIndex + 1).toLowerCase()
+    : '';
+  const baseName = hasExtension
+    ? trimmedFileName.slice(0, extensionIndex)
+    : trimmedFileName;
+
+  const safeBaseName = baseName
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-._]+|[-._]+$/g, '')
+    .toLowerCase();
+
+  const safeExtension = extension.replace(/[^a-z0-9]+/g, '');
+  const fallbackBaseName = safeBaseName || 'file';
+  const timestamp = Date.now();
+
+  return safeExtension
+    ? `${timestamp}-${fallbackBaseName}.${safeExtension}`
+    : `${timestamp}-${fallbackBaseName}`;
+}
+
 export function validateFile(file: File, maxSizeMB: number = 5): { isValid: boolean; error?: string } {
   const maxSizeBytes = maxSizeMB * 1024 * 1024; // MB to bytes
   
